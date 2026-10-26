@@ -1,49 +1,37 @@
-import FabricaProductos from './components/FabricaProductos';
+// src/App.jsx
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
+import Tienda from './pages/Tienda';
+import Dashboard from './pages/Dashboard';
+
+// Componente para proteger rutas (que no entren sin loguearse)
+function RutaProtegida({ children, rolRequerido }) {
+  const sesionStr = localStorage.getItem('sesionLibreria');
+  const sesion = sesionStr ? JSON.parse(sesionStr) : null;
+
+  if (!sesion) return <Navigate to="/login" />; // Si no hay sesión, al login
+  if (rolRequerido && sesion.rol !== rolRequerido) return <Navigate to="/tienda" />; // Si no es admin, a la tienda
+
+  return children;
+}
 
 export default function App() {
- 
-  const productos = [
-    { id: 1, tipo: 'Libro', nombre: 'Cien Años de Soledad', precio: 50 },
-    { id: 2, tipo: 'Comic', nombre: 'Spider-Man #1', precio: 25 },
-    { id: 3, tipo: 'Material', nombre: 'Cuaderno Cuadriculado', precio: 10 },
-    { id: 4, tipo: 'Libro', nombre: 'El Principito', precio: 30 },
-    { id: 5, tipo: 'Comic', nombre: 'Batman: Año Uno', precio: 40 },
-    { id: 6, tipo: 'Mochila', nombre: 'Mochila Escolar Azul', precio: 45 },
-    { id: 7, tipo: 'Mochila', nombre: 'Mochila Deportiva Crema', precio: 60 },
-                               
-
-  ];
-
   return (
-    <div style={{ 
-      fontFamily: 'Arial, sans-serif', 
-      padding: '20px', 
-      maxWidth: '800px', 
-      margin: '0 auto',
-      backgroundColor: '#f9f9f9',
-      minHeight: '100vh'
-    }}>
-      <header style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <h1 style={{ color: '#4a148c', margin: '0' }}>🏪 Librería Zonal</h1>
-        <p style={{ color: '#666', marginTop: '10px' }}>Catálogo de productos disponibles</p>
-      </header>
-      
-      <main style={{ 
-        display: 'flex', 
-        flexWrap: 'wrap', 
-        justifyContent: 'center',
-        gap: '10px' 
-      }}>
-        {productos.map((prod) => (
-          // AQUÍ USAMOS LA FÁBRICA. No usamos <LibroCard> directamente.
-          <FabricaProductos 
-            key={prod.id} 
-            tipo={prod.tipo} 
-            nombre={prod.nombre} 
-            precio={prod.precio} 
-          />
-        ))}
-      </main>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        
+        <Route path="/tienda" element={
+          <RutaProtegida><Tienda /></RutaProtegida>
+        } />
+        
+        <Route path="/admin" element={
+          <RutaProtegida rolRequerido="ADMIN"><Dashboard /></RutaProtegida>
+        } />
+
+        {/* Si entran a la raíz, redirigir al login */}
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
