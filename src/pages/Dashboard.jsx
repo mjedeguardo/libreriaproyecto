@@ -4,12 +4,8 @@ import { useNavigate } from 'react-router-dom';
 export default function Dashboard() {
   const navigate = useNavigate();
   
-  // Estado inicial vacío
   const estadoInicial = { tipo: 'Libro', nombre: '', precio: '', imagen: '', detalleExtra: '' };
-  
   const [nuevoProducto, setNuevoProducto] = useState(estadoInicial);
-  
-  // NUEVO ESTADO: Guarda el ID del producto si estamos editando, o null si estamos creando
   const [idEditando, setIdEditando] = useState(null);
 
   const [inventario, setInventario] = useState(() => {
@@ -21,13 +17,12 @@ export default function Dashboard() {
     setNuevoProducto({ ...nuevoProducto, [e.target.name]: e.target.value });
   };
 
-  // Función para guardar (sirve tanto para Crear como para Actualizar)
   const guardarProducto = (e) => {
     e.preventDefault();
     if (!nuevoProducto.nombre || !nuevoProducto.precio) return alert('Llena los campos obligatorios');
 
     const productoFormateado = {
-      id: idEditando ? idEditando : Date.now(), // Mantiene el ID si edita, crea uno nuevo si no
+      id: idEditando ? idEditando : Date.now(),
       tipo: nuevoProducto.tipo,
       nombre: nuevoProducto.nombre,
       precio: parseFloat(nuevoProducto.precio),
@@ -38,11 +33,9 @@ export default function Dashboard() {
 
     let nuevoInventario;
     if (idEditando) {
-      // ACTUALIZAR: Buscamos el producto por ID y lo reemplazamos
       nuevoInventario = inventario.map(p => p.id === idEditando ? productoFormateado : p);
       alert('¡Producto actualizado con éxito!');
     } else {
-      // CREAR: Lo agregamos al final
       nuevoInventario = [...inventario, productoFormateado];
       alert('¡Producto agregado con éxito!');
     }
@@ -50,12 +43,10 @@ export default function Dashboard() {
     setInventario(nuevoInventario);
     localStorage.setItem('inventarioLibreria', JSON.stringify(nuevoInventario));
     
-    // Limpiamos el formulario y el modo edición
     setNuevoProducto(estadoInicial);
     setIdEditando(null);
   };
 
-  // Función para Eliminar
   const eliminarProducto = (id) => {
     if (window.confirm('¿Estás seguro de eliminar este producto?')) {
       const nuevoInventario = inventario.filter(p => p.id !== id);
@@ -64,9 +55,7 @@ export default function Dashboard() {
     }
   };
 
-  // Función para preparar la Edición
   const editarProducto = (producto) => {
-    // Llenamos el formulario con los datos del producto
     setNuevoProducto({
       tipo: producto.tipo,
       nombre: producto.nombre,
@@ -74,8 +63,8 @@ export default function Dashboard() {
       imagen: producto.imagen,
       detalleExtra: producto.autor || producto.marca || ''
     });
-    setIdEditando(producto.id); // Activamos el modo edición
-    window.scrollTo(0, 0); // Subimos al inicio para ver el formulario
+    setIdEditando(producto.id);
+    window.scrollTo(0, 0);
   };
 
   return (
@@ -89,7 +78,6 @@ export default function Dashboard() {
       </header>
 
       <div style={{ padding: '30px', maxWidth: '800px', margin: '0 auto' }}>
-        {/* FORMULARIO */}
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', marginBottom: '30px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', border: idEditando ? '2px solid #1976d2' : 'none' }}>
           <h2>{idEditando ? '✏️ Editar Producto' : '➕ Agregar Nuevo Producto'}</h2>
           <form onSubmit={guardarProducto} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -102,7 +90,8 @@ export default function Dashboard() {
 
             <input type="text" name="nombre" placeholder="Nombre del producto" value={nuevoProducto.nombre} onChange={handleChange} style={{ padding: '10px' }} />
             
-            <input type="number" name="precio" placeholder="Precio en $" value={nuevoProducto.precio} onChange={handleChange} style={{ padding: '10px' }} />
+            {/* AQUÍ ESTABA EL ERROR, YA ESTÁ EN SOLES */}
+            <input type="number" name="precio" placeholder="Precio en S/" value={nuevoProducto.precio} onChange={handleChange} style={{ padding: '10px' }} />
             
             <input type="url" name="imagen" placeholder="URL de la imagen (Opcional)" value={nuevoProducto.imagen} onChange={handleChange} style={{ padding: '10px' }} />
             
@@ -120,7 +109,6 @@ export default function Dashboard() {
                 {idEditando ? 'Guardar Cambios' : 'Guardar Producto'}
               </button>
               
-              {/* Botón para cancelar edición */}
               {idEditando && (
                 <button type="button" onClick={() => { setNuevoProducto(estadoInicial); setIdEditando(null); }} style={{ padding: '12px', backgroundColor: '#e0e0e0', color: 'black', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
                   Cancelar
@@ -130,7 +118,6 @@ export default function Dashboard() {
           </form>
         </div>
 
-        {/* LISTA DE PRODUCTOS */}
         <h2>📦 Inventario Actual ({inventario.length})</h2>
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {inventario.map(p => (
@@ -140,13 +127,13 @@ export default function Dashboard() {
                 {p.imagen ? <img src={p.imagen} alt={p.nombre} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '5px' }} /> : <div style={{ width: '60px', height: '60px', backgroundColor: '#eee', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>📦</div>}
                 <div>
                   <strong style={{ fontSize: '16px' }}>{p.nombre}</strong> <span style={{ color: '#666' }}>({p.tipo})</span><br/>
-                  <span style={{ color: '#2e7d32', fontWeight: 'bold' }}>${p.precio}</span>
+                  {/* AQUÍ ESTABA EL OTRO ERROR, YA ESTÁ EN SOLES */}
+                  <span style={{ color: '#2e7d32', fontWeight: 'bold' }}>S/ {p.precio}</span>
                   {p.autor && <span style={{ marginLeft: '10px', fontSize: '13px', color: '#888' }}>✍️ {p.autor}</span>}
                   {p.marca && <span style={{ marginLeft: '10px', fontSize: '13px', color: '#888' }}>🏷️ {p.marca}</span>}
                 </div>
               </div>
 
-              {/* BOTONES DE ACCIÓN (Editar / Eliminar) */}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => editarProducto(p)} style={{ padding: '8px 12px', backgroundColor: '#fbc02d', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
                   Editar

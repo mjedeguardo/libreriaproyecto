@@ -12,7 +12,7 @@ export default function MaterialCard({ nombre, precio, imagen, marca, onAgregar,
         {marca && <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#666', fontStyle: 'italic' }}>🏷️ Marca: {marca}</p>}
         
         <p className={styles.oldPrice}>Precio único</p>
-        <p className={`${styles.price} ${styles.priceMaterial}`}>${precio.toFixed(2)}</p>
+        <p className={`${styles.price} ${styles.priceMaterial}`}>S/ {precio.toFixed(2)}</p>
         
         {esAdmin ? (
           <button disabled className={styles.button} style={{ backgroundColor: '#ccc' }}>Solo vista previa</button>

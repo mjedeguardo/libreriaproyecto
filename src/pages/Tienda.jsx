@@ -31,10 +31,7 @@ export default function Tienda() {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    
-    // Al montar el componente, también refrescamos por si acaso
     handleStorageChange();
-
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
@@ -48,8 +45,39 @@ export default function Tienda() {
     localStorage.setItem('carritoLibreria', JSON.stringify(carrito));
   }, [carrito]);
 
+  // 1. Agregar producto (Si ya existe, suma 1 a la cantidad)
   const agregarAlCarrito = (producto) => {
-    setCarrito([...carrito, producto]);
+    const existe = carrito.find(item => item.nombre === producto.nombre);
+    if (existe) {
+      setCarrito(carrito.map(item => 
+        item.nombre === producto.nombre ? { ...item, cantidad: item.cantidad + 1 } : item
+      ));
+    } else {
+      setCarrito([...carrito, { ...producto, cantidad: 1 }]);
+    }
+  };
+
+  // 2. Restar cantidad (Si llega a 0, se elimina)
+  const restarDelCarrito = (nombre) => {
+    setCarrito(carrito.map(item => {
+      if (item.nombre === nombre) {
+        return { ...item, cantidad: item.cantidad - 1 };
+      }
+      return item;
+    }).filter(item => item.cantidad > 0));
+  };
+
+  // 3. Eliminar producto por completo
+  const eliminarDelCarrito = (nombre) => {
+    setCarrito(carrito.filter(item => item.nombre !== nombre));
+  };
+
+  // 4. NUEVO: Finalizar Compra
+  const finalizarCompra = () => {
+    if (carrito.length === 0) return;
+    
+    alert(`¡Gracias por tu compra! Total pagado: S/ ${totalPagar.toFixed(2)}`);
+    setCarrito([]); // Vaciamos el carrito
   };
 
   const cerrarSesion = () => {
@@ -58,7 +86,11 @@ export default function Tienda() {
     navigate('/login');
   };
 
-  const totalPagar = carrito.reduce((suma, item) => suma + item.precio, 0);
+  // Cálculo del total a pagar (precio x cantidad)
+  const totalPagar = carrito.reduce((suma, item) => suma + (item.precio * item.cantidad), 0);
+  
+  // NUEVO: Contador total de items (suma las cantidades)
+  const totalItems = carrito.reduce((suma, item) => suma + item.cantidad, 0);
 
   // NUEVO: Filtramos los productos según lo que el usuario escriba
   const productosFiltrados = productos.filter((prod) => 
@@ -82,8 +114,9 @@ export default function Tienda() {
               </>
             ) : (
               <>
-                <span>🛒 {carrito.length} items</span>
-                <span className={styles.total}>Total: ${totalPagar.toFixed(2)}</span>
+                {/* Usamos totalItems en lugar de carrito.length */}
+                <span>🛒 {totalItems} items</span>
+                <span className={styles.total}>Total: S/{totalPagar.toFixed(2)}</span>
               </>
             )}
             
@@ -91,6 +124,38 @@ export default function Tienda() {
           </div>
         </div>
       </header>
+
+      {/* PANEL DEL CARRITO (Solo visible si hay items) */}
+      {carrito.length > 0 && !esAdmin && (
+        <div style={{ backgroundColor: '#fff', padding: '15px', margin: '20px auto', maxWidth: '800px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '10px' }}>🛒 Tu Carrito</h3>
+          
+          {carrito.map((item) => (
+            <div key={item.nombre} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f0f0f0', padding: '10px 0' }}>
+              <div>
+                <strong>{item.nombre}</strong> <br/>
+                <small>S/ {item.precio.toFixed(2)} c/u</small>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button onClick={() => restarDelCarrito(item.nombre)} style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#eee', border: 'none', borderRadius: '5px', fontWeight: 'bold' }}>-</button>
+                <span style={{ fontWeight: 'bold' }}>{item.cantidad}</span>
+                <button onClick={() => agregarAlCarrito(item)} style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#eee', border: 'none', borderRadius: '5px', fontWeight: 'bold' }}>+</button>
+                
+                <button onClick={() => eliminarDelCarrito(item.nombre)} style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#ffebee', color: '#d32f2f', border: 'none', borderRadius: '5px', marginLeft: '15px' }}>
+                  🗑️
+                </button>
+              </div>
+            </div>
+          ))}
+          
+          <div style={{ textAlign: 'right', marginTop: '15px' }}>
+            <button onClick={finalizarCompra} style={{ padding: '10px 20px', backgroundColor: '#2e7d32', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+              Finalizar Compra (S/ {totalPagar.toFixed(2)})
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className={styles.main}>
         <div className={styles.titleSection}>
