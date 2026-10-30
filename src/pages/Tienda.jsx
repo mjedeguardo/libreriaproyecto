@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FabricaProductos from '../components/FabricaProductos';
-import styles from './Tienda.module.css';
+import styles from './Tienda.module.css'; // <-- ESTE es el CSS correcto para la tienda
 
 export default function Tienda() {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export default function Tienda() {
     const guardado = localStorage.getItem('inventarioLibreria');
     if (guardado) return JSON.parse(guardado);
     return [
-      { id: 1, tipo: 'Libro', nombre: 'Cien Años de Soledad', precio: 50, imagen: '' }
+      { id: 1, tipo: 'Libro', nombre: 'Cien Años de Soledad', precio: 50, imagen: '', stock: 10 }
     ];
   });
 
@@ -45,10 +45,23 @@ export default function Tienda() {
     localStorage.setItem('carritoLibreria', JSON.stringify(carrito));
   }, [carrito]);
 
-  // 1. Agregar producto (Si ya existe, suma 1 a la cantidad)
+  // 1. Agregar producto validando el stock
   const agregarAlCarrito = (producto) => {
-    const existe = carrito.find(item => item.nombre === producto.nombre);
-    if (existe) {
+    const productoOriginal = productos.find(p => p.nombre === producto.nombre);
+    
+    // BLINDAJE: Convertimos el stock a número. Si es undefined o NaN, asumimos 10.
+    const stockRealDB = productoOriginal ? parseInt(productoOriginal.stock) : 10;
+    const stockDisponible = isNaN(stockRealDB) ? 10 : stockRealDB;
+
+    const enCarrito = carrito.find(item => item.nombre === producto.nombre);
+    const cantidadEnCarrito = enCarrito ? enCarrito.cantidad : 0;
+
+    if (cantidadEnCarrito >= stockDisponible) {
+      alert(`Lo sentimos, solo quedan ${stockDisponible} unidades de ${producto.nombre}.`);
+      return;
+    }
+
+    if (enCarrito) {
       setCarrito(carrito.map(item => 
         item.nombre === producto.nombre ? { ...item, cantidad: item.cantidad + 1 } : item
       ));
@@ -57,14 +70,15 @@ export default function Tienda() {
     }
   };
 
-  // 2. Restar cantidad (Si llega a 0, se elimina)
+  // 2. Restar cantidad
   const restarDelCarrito = (nombre) => {
     setCarrito(carrito.map(item => {
       if (item.nombre === nombre) {
-        return { ...item, cantidad: item.cantidad - 1 };
+        const nuevaCantidad = item.cantidad > 1 ? item.cantidad - 1 : 1;
+        return { ...item, cantidad: nuevaCantidad };
       }
       return item;
-    }).filter(item => item.cantidad > 0));
+    }));
   };
 
   // 3. Eliminar producto por completo
@@ -72,12 +86,11 @@ export default function Tienda() {
     setCarrito(carrito.filter(item => item.nombre !== nombre));
   };
 
-  // 4. NUEVO: Finalizar Compra
+  // 4. Finalizar Compra
   const finalizarCompra = () => {
     if (carrito.length === 0) return;
-    
     alert(`¡Gracias por tu compra! Total pagado: S/ ${totalPagar.toFixed(2)}`);
-    setCarrito([]); // Vaciamos el carrito
+    setCarrito([]);
   };
 
   const cerrarSesion = () => {
@@ -86,13 +99,11 @@ export default function Tienda() {
     navigate('/login');
   };
 
-  // Cálculo del total a pagar (precio x cantidad)
+  // Cálculos del carrito
   const totalPagar = carrito.reduce((suma, item) => suma + (item.precio * item.cantidad), 0);
-  
-  // NUEVO: Contador total de items (suma las cantidades)
   const totalItems = carrito.reduce((suma, item) => suma + item.cantidad, 0);
 
-  // NUEVO: Filtramos los productos según lo que el usuario escriba
+  // Filtramos los productos
   const productosFiltrados = productos.filter((prod) => 
     prod.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
     prod.tipo.toLowerCase().includes(busqueda.toLowerCase())
@@ -114,7 +125,6 @@ export default function Tienda() {
               </>
             ) : (
               <>
-                {/* Usamos totalItems en lugar de carrito.length */}
                 <span>🛒 {totalItems} items</span>
                 <span className={styles.total}>Total: S/{totalPagar.toFixed(2)}</span>
               </>
@@ -125,7 +135,7 @@ export default function Tienda() {
         </div>
       </header>
 
-      {/* PANEL DEL CARRITO (Solo visible si hay items) */}
+      {/* PANEL DEL CARRITO */}
       {carrito.length > 0 && !esAdmin && (
         <div style={{ backgroundColor: '#fff', padding: '15px', margin: '20px auto', maxWidth: '800px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
           <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '10px' }}>🛒 Tu Carrito</h3>
@@ -162,7 +172,6 @@ export default function Tienda() {
           <h1 className={styles.title}>{esAdmin ? 'Vista de Cliente (Admin)' : 'Catálogo de Productos'}</h1>
           <p className={styles.subtitle}>Encuentra lo mejor para tus estudios y colección</p>
           
-          {/* NUEVO INPUT DE BÚSQUEDA */}
           <input 
             type="text" 
             placeholder="🔍 Buscar por nombre o categoría (Ej: Libro, Comic)..." 
@@ -173,25 +182,33 @@ export default function Tienda() {
         </div>
         
         <div className={styles.grid}>
-          {/* Si no hay resultados, mostramos un mensaje */}
           {productosFiltrados.length === 0 ? (
             <p style={{ gridColumn: '1 / -1', textAlign: 'center', fontSize: '18px', color: '#666', marginTop: '20px' }}>
               😢 No se encontraron productos que coincidan con "{busqueda}".
             </p>
           ) : (
-            productosFiltrados.map((prod) => (
-              <FabricaProductos 
-                key={prod.id} 
-                tipo={prod.tipo} 
-                nombre={prod.nombre} 
-                precio={prod.precio} 
-                imagen={prod.imagen} 
-                autor={prod.autor} 
-                marca={prod.marca} 
-                onAgregar={agregarAlCarrito} 
-                esAdmin={esAdmin} 
-              />
-            ))
+            productosFiltrados.map((prod) => {
+              const enCarrito = carrito.find(item => item.nombre === prod.nombre);
+              const cantidadEnCarrito = enCarrito ? enCarrito.cantidad : 0;
+              
+              const stockBase = parseInt(prod.stock, 10) || 0;
+              const stockVisual = stockBase - cantidadEnCarrito;
+
+              return (
+                <FabricaProductos 
+                  key={prod.id} 
+                  tipo={prod.tipo} 
+                  nombre={prod.nombre} 
+                  precio={prod.precio} 
+                  imagen={prod.imagen} 
+                  autor={prod.autor} 
+                  marca={prod.marca} 
+                  stock={stockVisual} 
+                  onAgregar={agregarAlCarrito} 
+                  esAdmin={esAdmin} 
+                />
+              );
+            })
           )}
         </div>
       </main>

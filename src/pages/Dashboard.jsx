@@ -4,8 +4,12 @@ import { useNavigate } from 'react-router-dom';
 export default function Dashboard() {
   const navigate = useNavigate();
   
-  const estadoInicial = { tipo: 'Libro', nombre: '', precio: '', imagen: '', detalleExtra: '' };
+  // 1. El estado inicial incluye el stock (por defecto 10)
+  const estadoInicial = { tipo: 'Libro', nombre: '', precio: '', imagen: '', detalleExtra: '', stock: 10 };
+  
+  // 2. El estado del producto que se está creando/editando
   const [nuevoProducto, setNuevoProducto] = useState(estadoInicial);
+  
   const [idEditando, setIdEditando] = useState(null);
 
   const [inventario, setInventario] = useState(() => {
@@ -14,7 +18,22 @@ export default function Dashboard() {
   });
 
   const handleChange = (e) => {
-    setNuevoProducto({ ...nuevoProducto, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Si el campo que se está modificando es el 'stock'
+    if (name === 'stock') {
+      let stockNumerico = parseInt(value);
+      
+      if (isNaN(stockNumerico)) stockNumerico = 0;
+      
+      // VALIDACIÓN: Mínimo 0, Máximo 100
+      if (stockNumerico > 100) stockNumerico = 100;
+      if (stockNumerico < 0) stockNumerico = 0;
+
+      setNuevoProducto({ ...nuevoProducto, stock: stockNumerico });
+    } else {
+      setNuevoProducto({ ...nuevoProducto, [name]: value });
+    }
   };
 
   const guardarProducto = (e) => {
@@ -28,7 +47,8 @@ export default function Dashboard() {
       precio: parseFloat(nuevoProducto.precio),
       imagen: nuevoProducto.imagen,
       autor: (nuevoProducto.tipo === 'Libro' || nuevoProducto.tipo === 'Comic') ? nuevoProducto.detalleExtra : '',
-      marca: nuevoProducto.tipo === 'Material' ? nuevoProducto.detalleExtra : ''
+      marca: nuevoProducto.tipo === 'Material' ? nuevoProducto.detalleExtra : '',
+      stock: parseInt(nuevoProducto.stock) || 0 
     };
 
     let nuevoInventario;
@@ -61,7 +81,8 @@ export default function Dashboard() {
       nombre: producto.nombre,
       precio: producto.precio.toString(),
       imagen: producto.imagen,
-      detalleExtra: producto.autor || producto.marca || ''
+      detalleExtra: producto.autor || producto.marca || '',
+      stock: producto.stock !== undefined ? producto.stock.toString() : '10'
     });
     setIdEditando(producto.id);
     window.scrollTo(0, 0);
@@ -90,8 +111,19 @@ export default function Dashboard() {
 
             <input type="text" name="nombre" placeholder="Nombre del producto" value={nuevoProducto.nombre} onChange={handleChange} style={{ padding: '10px' }} />
             
-            {/* AQUÍ ESTABA EL ERROR, YA ESTÁ EN SOLES */}
             <input type="number" name="precio" placeholder="Precio en S/" value={nuevoProducto.precio} onChange={handleChange} style={{ padding: '10px' }} />
+            
+            {/* INPUT DE STOCK (Único y corregido) */}
+            <input 
+              type="number" 
+              name="stock" 
+              placeholder="Cantidad en Stock (0-100)" 
+              min="0" 
+              max="100" 
+              value={nuevoProducto.stock} 
+              onChange={handleChange} 
+              style={{ padding: '10px' }} 
+            />
             
             <input type="url" name="imagen" placeholder="URL de la imagen (Opcional)" value={nuevoProducto.imagen} onChange={handleChange} style={{ padding: '10px' }} />
             
@@ -127,8 +159,10 @@ export default function Dashboard() {
                 {p.imagen ? <img src={p.imagen} alt={p.nombre} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '5px' }} /> : <div style={{ width: '60px', height: '60px', backgroundColor: '#eee', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>📦</div>}
                 <div>
                   <strong style={{ fontSize: '16px' }}>{p.nombre}</strong> <span style={{ color: '#666' }}>({p.tipo})</span><br/>
-                  {/* AQUÍ ESTABA EL OTRO ERROR, YA ESTÁ EN SOLES */}
                   <span style={{ color: '#2e7d32', fontWeight: 'bold' }}>S/ {p.precio}</span>
+                  
+                  <span style={{ marginLeft: '10px', fontSize: '13px', color: '#d32f2f', fontWeight: 'bold' }}>Stock: {p.stock !== undefined ? p.stock : 10}</span>
+                  
                   {p.autor && <span style={{ marginLeft: '10px', fontSize: '13px', color: '#888' }}>✍️ {p.autor}</span>}
                   {p.marca && <span style={{ marginLeft: '10px', fontSize: '13px', color: '#888' }}>🏷️ {p.marca}</span>}
                 </div>
